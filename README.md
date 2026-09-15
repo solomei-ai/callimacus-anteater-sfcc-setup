@@ -9,7 +9,7 @@ Full walkthrough: **[docs.callimacus.ai/user-guide/studio/anteater/salesforce](h
 
 | File | What it is | Where it goes in Business Manager |
 |---|---|---|
-| `jobs.xml` | The six `Callimacus*` export jobs (catalog full + delta, prices, inventory, site config, promotions). Identical for every customer — no instance-specific values. | Administration › Site Development › **Site Import & Export** (merge) |
+| `callimacus-jobs.zip` | The six `Callimacus*` export jobs (catalog full + delta, prices, inventory, site config, promotions), packaged as an importable site archive. Identical for every customer — no instance-specific values. Source: `jobs.xml`. | Administration › Site Development › **Site Import & Export** (merge) |
 | `webdav/client_permissions-template.json` | Read-only WebDAV grant on `/impex/src/instance/callimacus`, and nothing else. **Required.** | Administration › Organization › **WebDAV Client Permissions** |
 | `ocapi/data-api-template.json` | Lets Callimacus trigger and monitor *only* the six Callimacus jobs. **Recommended**, optional. | Administration › Site Development › **Open Commerce API Settings** (type Data, context Global) |
 
@@ -17,9 +17,13 @@ In both JSON templates, replace `<CALLIMACUS_API_CLIENT_ID>` with the client ID 
 client you created in your own Account Manager, and **merge** the entry into the existing
 list — preserve any clients already there.
 
-Site Import & Export takes a **site archive**, not a bare `.xml`: zip `jobs.xml` inside a
-folder, so that `callimacus-jobs.zip` contains `callimacus-jobs/jobs.xml`. The archive and
-its top-level folder must carry the same name.
+Upload `callimacus-jobs.zip` as-is — Site Import & Export takes a **site archive**, never a
+bare `.xml`. If you edit `jobs.xml`, rebuild the archive (the zip and its top-level folder
+must carry the same name):
+
+```sh
+mkdir -p callimacus-jobs && cp jobs.xml callimacus-jobs/ && zip -r callimacus-jobs.zip callimacus-jobs
+```
 
 The jobs ship with empty schedules on purpose: set cadences per environment in
 Administration › Operations › Jobs. Recommended cadences are in the comments in `jobs.xml`.
