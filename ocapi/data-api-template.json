@@ -1,0 +1,115 @@
+{
+  "_comment": "OPTIONAL onboarding tier: lets the Callimacus API client trigger and monitor ONLY the six Callimacus export jobs (bootstrap, recovery, on-demand refresh). Scheduling remains owned by the customer in BM. Merge into Administration > Site Development > Open Commerce API Settings (type: Data, context: Global) — preserve existing clients.",
+  "_v": "23.2",
+  "clients": [
+    {
+      "client_id": "<CALLIMACUS_API_CLIENT_ID>",
+      "resources": [
+        {
+          "resource_id": "/job_execution_search",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusCatalogFull/executions",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusCatalogFull/executions/*",
+          "methods": [
+            "get"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusCatalogDelta/executions",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusCatalogDelta/executions/*",
+          "methods": [
+            "get"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusPrices/executions",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusPrices/executions/*",
+          "methods": [
+            "get"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusInventory/executions",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusInventory/executions/*",
+          "methods": [
+            "get"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusSiteConfig/executions",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusSiteConfig/executions/*",
+          "methods": [
+            "get"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusPromotions/executions",
+          "methods": [
+            "post"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        },
+        {
+          "resource_id": "/jobs/CallimacusPromotions/executions/*",
+          "methods": [
+            "get"
+          ],
+          "read_attributes": "(**)",
+          "write_attributes": "(**)"
+        }
+      ]
+    }
+  ]
+}

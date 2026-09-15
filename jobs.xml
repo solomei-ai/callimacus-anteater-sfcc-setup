@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jobs xmlns="http://www.demandware.com/xml/impex/jobs/2015-07-01">
+
+    <!--
+        Callimacus catalog/price/inventory export jobs (native SFCC steps only — no cartridge code).
+        All four are org/catalog-level: a single run captures every site. Per-site online/searchable
+        flags are embedded in the catalog XML, so Callimacus resolves per-site/per-country on its side.
+
+        All output is picked up by Callimacus over WebDAV from a single folder:
+        Impex/src/instance/callimacus/ (catalogs.zip, prices.zip, inventory.zip, sites.zip).
+
+        Schedules are intentionally left empty — set them per environment in
+        Administration > Operations > Jobs > [job] > Schedule and History. Recommended cadences below.
+    -->
+
+    <!--
+        FULL catalog export. Bootstrap on install, then a periodic re-baseline.
+        Catalog-agnostic by design (deployable to any customer org unchanged): a single
+        SiteExport step dumps EVERY catalog on the instance to
+        Impex/src/instance/callimacus/catalogs.zip, one catalogs/<catalog-id>/catalog.xml each.
+        Callimacus tells masters (products, variations, recommendations) from storefront
+        catalogs (category trees + assignments) by content, and resolves each site's storefront
+        catalog authoritatively from sites.zip (SiteCatalog preference - see CallimacusSiteConfig).
+        To exclude catalogs for a specific customer, narrow the dataUnits job parameter in BM:
+          {"export_data_units_configuration":{"catalogs":{"their-master":true,"their-site-catalog":true}}}
+        Recommended schedule: weekly, off-peak (it also pulls recommendations, which are large).
+    -->
+    <job job-id="CallimacusCatalogFull">
+        <description>Full catalog export for Callimacus (all catalogs: master products + storefront categories). Bootstrap + weekly re-baseline.</description>
+        <parameters>
+            <parameter name="dataUnits">{"export_data_units_configuration":{"catalogs":{"all":true}}}</parameter>
+        </parameters>
+        <flow>
+            <step step-id="exportCatalogs" type="SiteExport" enforce-restart="false">
+                <description>All catalogs dump (masters + storefront catalogs).</description>
+                <parameters>
+                    <parameter name="DataUnits" job-parameter-ref="dataUnits"/>
+                    <parameter name="ExportFile">callimacus/catalogs.zip</parameter>
+                    <parameter name="OverwriteExportFile">true</parameter>
+                    <parameter name="SaveOnRealm">false</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers/>
+    </job>
+
+    <!--
+        INCREMENTAL catalog delta. Only products changed since the last run for this consumer.
+        Requires the "Delta Exports" feature enabled by Salesforce support (per instance).
+        Output: Impex/src/instance/<consumer>/<deltaExportJobName>/<timestamp>/.
+        Recommended schedule: hourly.
+    -->
+    <job job-id="CallimacusCatalogDelta">
+        <description>Incremental catalog delta for Callimacus. Only products changed since the last run. Requires Delta Exports enabled by SF support.</description>
+        <parameters>
+            <parameter name="catalogIDs">Comma-separated catalog IDs to track for deltas.</parameter>
+            <parameter name="consumer">callimacus</parameter>
+            <parameter name="deltaExportJobName">callimacusCatalogDelta</parameter>
+        </parameters>
+        <flow>
+            <context site-id="bc-eu"/>
+            <step step-id="catalogDeltaExport" type="CatalogDeltaExport" enforce-restart="false">
+                <description>Native SFCC catalog delta export.</description>
+                <parameters>
+                    <parameter name="CatalogIDs" job-parameter-ref="catalogIDs"/>
+                    <parameter name="Consumers" job-parameter-ref="consumer"/>
+                    <parameter name="ExportFile" job-parameter-ref="deltaExportJobName"/>
+                    <parameter name="MasterProductExport">true</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers/>
+    </job>
+
+    <!--
+        PRICES. Full export of pricebooks. Prices change rarely (seasonal), so daily is plenty.
+        Output: Impex/src/instance/callimacus/prices.zip (one XML per pricebook, entries keyed by variant SKU).
+        NOTE: cost scales with the number of POPULATED pricebooks — each serializes the full priced
+        catalog for its country (~tens of thousands of entries, ~15s each). Empty pricebooks are
+        near-free. Narrow price_books to the countries the client actually sells in to keep this fast:
+        {"export_data_units_configuration":{"price_books":{"US-U3-261-USD":true,"BE-E1-261-EUR":true}}}
+        Recommended schedule: daily, off-peak.
+    -->
+    <job job-id="CallimacusPrices">
+        <description>Pricebook export for Callimacus. Recommended: daily.</description>
+        <parameters/>
+        <flow>
+            <step step-id="exportPrices" type="SiteExport" enforce-restart="false">
+                <parameters>
+                    <parameter name="DataUnits">{"export_data_units_configuration":{"price_books":{"all":true}}}</parameter>
+                    <parameter name="ExportFile">callimacus/prices.zip</parameter>
+                    <parameter name="OverwriteExportFile">true</parameter>
+                    <parameter name="SaveOnRealm">false</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers/>
+    </job>
+
+    <!--
+        INVENTORY. Full export of inventory lists. Small + fast (~1-3 min), safe to run frequently.
+        Output: Impex/src/instance/callimacus/inventory.zip (one XML per inventory list, keyed by SKU with ATS).
+        Recommended schedule: every 15 minutes.
+    -->
+    <job job-id="CallimacusInventory">
+        <description>Inventory export for Callimacus. Recommended: every 15 minutes.</description>
+        <parameters/>
+        <flow>
+            <step step-id="exportInventory" type="SiteExport" enforce-restart="false">
+                <parameters>
+                    <parameter name="DataUnits">{"export_data_units_configuration":{"inventory_lists":{"all":true}}}</parameter>
+                    <parameter name="ExportFile">callimacus/inventory.zip</parameter>
+                    <parameter name="OverwriteExportFile">true</parameter>
+                    <parameter name="SaveOnRealm">false</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers/>
+    </job>
+
+    <!--
+        SITE CONFIG. Per-site descriptor + preferences: the site <-> catalog/locales/pricebooks wiring.
+        Output: Impex/src/instance/callimacus/sites.zip (sites/<site-id>/site.xml + preferences.xml).
+        The mapping Callimacus needs lives in preferences.xml standard preferences:
+          SiteCatalog, SiteLocales, SiteDefaultLocale, SiteCurrencies, SitePriceBooks
+        plus <taxation> (gross/net) in site.xml. Country -> pricebook selection beyond SitePriceBooks
+        is custom storefront logic; the pricebook ID convention ({COUNTRY}-{region}-{season}-{CURRENCY})
+        encodes it and is derivable from the prices export.
+        CAUTION: site.xml carries a hashed storefront password and custom preferences may contain
+        integration credentials - Callimacus must whitelist the preference IDs above, not ingest wholesale.
+        Recommended schedule: weekly (this config changes rarely).
+    -->
+    <job job-id="CallimacusSiteConfig">
+        <description>Site configuration export for Callimacus (site/catalog/locale/pricebook mapping). Recommended: weekly.</description>
+        <parameters/>
+        <flow>
+            <step step-id="exportSiteConfig" type="SiteExport" enforce-restart="false">
+                <parameters>
+                    <parameter name="DataUnits">{"export_data_units_configuration":{"sites":{"all":{"site_descriptor":true,"site_preferences":true}}}}</parameter>
+                    <parameter name="ExportFile">callimacus/sites.zip</parameter>
+                    <parameter name="OverwriteExportFile">true</parameter>
+                    <parameter name="SaveOnRealm">false</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers/>
+    </job>
+
+    <!--
+        PROMOTIONS. Per-site campaigns, promotions and their assignments.
+        Output: Impex/src/instance/callimacus/promotions.zip (sites/<site-id>/promotions.xml).
+        Promotions are site-scoped (unlike catalogs/prices/inventory, which are org-level),
+        so this exports campaigns_and_promotions for EVERY site; Callimacus resolves per-site
+        applicability on its side. One promotions.xml per site carries campaigns, promotions,
+        and promotion-campaign-assignments (qualifiers, customer-group targeting, schedules,
+        discount rules). These are the RULE-based discounts (e.g. "20% off sweaters") that
+        sale pricebooks in prices.zip don't capture - they're computed by the promotion engine
+        at runtime, so they have to be exported as rules.
+        Coupon- and source-code-triggered promotions reference coupons.xml / source-codes.xml,
+        which are NOT exported here (cart/checkout-level, not needed for catalog/product
+        promotions). Add those data units if checkout promotions are ever required:
+          {"export_data_units_configuration":{"sites":{"all":{"campaigns_and_promotions":true,"coupons":true,"source_codes":true}}}}
+        Recommended schedule: daily, off-peak (bump to hourly if campaigns flip intra-day -
+        SFCC campaign start/end dates carry a time component).
+    -->
+    <job job-id="CallimacusPromotions">
+        <description>Promotions export for Callimacus (per-site campaigns + promotions + assignments). Recommended: daily.</description>
+        <parameters/>
+        <flow>
+            <step step-id="exportPromotions" type="SiteExport" enforce-restart="false">
+                <parameters>
+                    <parameter name="DataUnits">{"export_data_units_configuration":{"sites":{"all":{"campaigns_and_promotions":true}}}}</parameter>
+                    <parameter name="ExportFile">callimacus/promotions.zip</parameter>
+                    <parameter name="OverwriteExportFile">true</parameter>
+                    <parameter name="SaveOnRealm">false</parameter>
+                </parameters>
+            </step>
+        </flow>
+        <rules/>
+        <triggers/>
+    </job>
+
+</jobs>

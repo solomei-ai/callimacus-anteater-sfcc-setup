@@ -1,0 +1,14 @@
+{
+  "_comment": "Merge into Administration > Organization > WebDAV Client Permissions (or import via site archive under webdav/client_permissions.json — PRESERVE existing clients). Grants the Callimacus API client read-only access to the export pickup folder and nothing else.",
+  "clients": [
+    {
+      "client_id": "<CALLIMACUS_API_CLIENT_ID>",
+      "permissions": [
+        {
+          "path": "/impex/src/instance/callimacus",
+          "operations": ["read"]
+        }
+      ]
+    }
+  ]
+}
