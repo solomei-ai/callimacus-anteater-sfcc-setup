@@ -17,8 +17,9 @@ In both JSON templates, replace `<CALLIMACUS_API_CLIENT_ID>` with the client ID 
 client you created in your own Account Manager, and **merge** the entry into the existing
 list — preserve any clients already there.
 
-Site Import & Export takes a **site archive**, not a bare `.xml`: put `jobs.xml` inside a
-folder (`callimacus-jobs/jobs.xml`) and upload that zip.
+Site Import & Export takes a **site archive**, not a bare `.xml`: zip `jobs.xml` inside a
+folder, so that `callimacus-jobs.zip` contains `callimacus-jobs/jobs.xml`. The archive and
+its top-level folder must carry the same name.
 
 The jobs ship with empty schedules on purpose: set cadences per environment in
 Administration › Operations › Jobs. Recommended cadences are in the comments in `jobs.xml`.
