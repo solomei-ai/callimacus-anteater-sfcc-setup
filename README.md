@@ -9,21 +9,28 @@ Full walkthrough: **[docs.callimacus.ai/user-guide/studio/anteater/salesforce](h
 
 | File | What it is | Where it goes in Business Manager |
 |---|---|---|
-| `callimacus-jobs.zip` | The six `Callimacus*` export jobs (catalog full + delta, prices, inventory, site config, promotions), packaged as an importable site archive. Identical for every customer — no instance-specific values. Source: `jobs.xml`. | Administration › Site Development › **Site Import & Export** (merge) |
+| `jobs.xml` | The six `Callimacus*` export jobs (catalog full + delta, prices, inventory, site config, promotions). Identical for every customer — no instance-specific values. | Administration › Operations › **Import & Export** |
 | `webdav/client_permissions-template.json` | Read-only WebDAV grant on `/impex/src/instance/callimacus`, and nothing else. **Required.** | Administration › Organization › **WebDAV Client Permissions** |
 | `ocapi/data-api-template.json` | Lets Callimacus trigger and monitor *only* the six Callimacus jobs. **Recommended**, optional. | Administration › Site Development › **Open Commerce API Settings** (type Data, context Global) |
+
+## Importing the jobs
+
+Under **Administration › Operations › Import & Export**:
+
+1. Click **Upload** under "Import & Export Files", **Choose File** → `jobs.xml` → **Upload**.
+2. Back on that page, click **Import** under "Jobs".
+3. Select `jobs.xml` → **Next** → **Next** → **Import**.
+
+Upload the file as-is. *Site Development › Site Import & Export* is a different page — it
+takes a zipped site archive and will reject a bare `.xml`.
+
+## The permission templates
 
 In both JSON templates, replace `<CALLIMACUS_API_CLIENT_ID>` with the client ID of the API
 client you created in your own Account Manager, and **merge** the entry into the existing
 list — preserve any clients already there.
 
-Upload `callimacus-jobs.zip` as-is — Site Import & Export takes a **site archive**, never a
-bare `.xml`. If you edit `jobs.xml`, rebuild the archive (the zip and its top-level folder
-must carry the same name):
-
-```sh
-mkdir -p callimacus-jobs && cp jobs.xml callimacus-jobs/ && zip -r callimacus-jobs.zip callimacus-jobs
-```
+## Schedules
 
 The jobs ship with empty schedules on purpose: set cadences per environment in
 Administration › Operations › Jobs. Recommended cadences are in the comments in `jobs.xml`.
